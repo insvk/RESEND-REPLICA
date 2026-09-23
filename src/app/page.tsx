@@ -11,8 +11,8 @@ export default function Home() {
           </div>
           <nav className={styles.nav}>
             <Link href="/dashboard">Dashboard</Link>
-            <Link href="/docs">Documentation</Link>
             <Link href="/login">Sign In</Link>
+            <Link href="/register" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Sign Up</Link>
           </nav>
         </div>
       </header>
