@@ -35,10 +35,10 @@ export default async function ApiKeysPage() {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th>Name</th>
               <th>Prefix</th>
               <th>Created</th>
               <th>Last Used</th>
-              <th>Revoked</th>
             </tr>
           </thead>
           <tbody>
@@ -51,10 +51,10 @@ export default async function ApiKeysPage() {
             ) : (
               apiKeys.map(key => (
                 <tr key={key.id}>
+                  <td>{key.name}</td>
                   <td style={{ fontFamily: 'monospace' }}>{key.prefix}••••••••••••••••••••••••</td>
                   <td>{new Date(key.createdAt).toLocaleDateString()}</td>
-                  <td>{key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleDateString() : 'Never'}</td>
-                  <td>{key.revokedAt ? 'Yes' : 'No'}</td>
+                  <td>{key.lastUsed ? new Date(key.lastUsed).toLocaleDateString() : 'Never'}</td>
                 </tr>
               ))
             )}

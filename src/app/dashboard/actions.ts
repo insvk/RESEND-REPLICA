@@ -32,6 +32,7 @@ export async function createApiKey() {
   // Store the hash in DB
   await prisma.apiKey.create({
     data: {
+      name: 'Production Key',
       hash,
       prefix: 're_', // For UI display reference
       projectId
@@ -61,11 +62,11 @@ export async function createDomain(domainName: string) {
     data: {
       name: domainName,
       projectId,
-      status: 'PENDING',
+      status: 'UNVERIFIED',
       verifications: {
         create: [
-          { type: 'TXT', record: `resend-replica._domainkey.${domainName}`, value: 'v=DKIM1; p=mock_key' },
-          { type: 'CNAME', record: `bounce.${domainName}`, value: 'bounce.resend-replica.vercel.app' }
+          { type: 'TXT', record: `resend-replica._domainkey.${domainName}`, status: 'UNVERIFIED' },
+          { type: 'CNAME', record: `bounce.${domainName}`, status: 'UNVERIFIED' }
         ]
       }
     }
