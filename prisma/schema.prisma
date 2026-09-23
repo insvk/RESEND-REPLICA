@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String?   // Added for Credentials Provider
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id        String    @id @default(uuid())
+  name      String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  apiKeys   ApiKey[]
+  domains   Domain[]
+  emails    Email[]
+  webhooks  Webhook[]
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  name      String
+  hash      String   @unique // Hashed key, never store plaintext
+  prefix    String   // e.g. "re_"
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  lastUsed  DateTime?
+}
+
+model Domain {
+  id            String         @id @default(uuid())
+  name          String
+  status        DomainStatus   @default(UNVERIFIED)
+  projectId     String
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  verifications DomainVerification[]
+}
+
+enum DomainStatus {
+  UNVERIFIED
+  VERIFYING
+  VERIFIED
+  FAILED
+}
+
+model DomainVerification {
+  id          String   @id @default(uuid())
+  domainId    String
+  domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  type        String   // e.g., "TXT", "CNAME"
+  record      String   // e.g., "v=spf1 include:_spf.example.com ~all"
+  status      DomainStatus
+  createdAt   DateTime @default(now())
+}
+
+model Email {
+  id            String       @id @default(uuid()) // "email_xxxxxxxxx"
+  projectId     String
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  from          String
+  to            String[]     // Array of recipients
+  subject       String
+  html          String?
+  text          String?
+  status        EmailStatus  @default(QUEUED)
+  idempotencyKey String?
+  providerId    String?      // ID returned by the upstream provider (e.g. AWS SES)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  events        EmailEvent[]
+
+  @@index([projectId])
+  @@index([idempotencyKey])
+}
+
+enum EmailStatus {
+  ACCEPTED
+  QUEUED
+  PROCESSING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+  COMPLAINED
+}
+
+model EmailEvent {
+  id        String      @id @default(uuid())
+  emailId   String
+  email     Email       @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  status    EmailStatus
+  providerEventId String?
+  createdAt DateTime    @default(now())
+
+  @@index([emailId])
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  secret    String
+  events    String[] // Array of event types like "email.sent", "email.delivered"
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
