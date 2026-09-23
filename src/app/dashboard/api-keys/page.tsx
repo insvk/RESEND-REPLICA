@@ -1,6 +1,25 @@
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
 import styles from '../dashboard.module.css';
+import { CreateKeyButton } from './CreateKeyButton';
 
-export default function ApiKeysPage() {
+export default async function ApiKeysPage() {
+  const session = await getServerSession();
+  
+  // If not logged in, just fallback or redirect (in a real app, middleware handles this)
+  if (!session?.user?.email) return <div>Please log in</div>;
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: {
+      projects: {
+        include: { apiKeys: true }
+      }
+    }
+  });
+
+  const apiKeys = user?.projects[0]?.apiKeys || [];
+
   return (
     <div>
       <div className={styles.pageHeader}>
@@ -9,35 +28,36 @@ export default function ApiKeysPage() {
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>
-        <button style={{
-          padding: '0.75rem 1.5rem',
-          backgroundColor: 'var(--text-primary)',
-          color: 'var(--bg-primary)',
-          border: 'none',
-          borderRadius: 'var(--radius-md)',
-          fontWeight: 500
-        }}>
-          Create API Key
-        </button>
+        <CreateKeyButton />
       </div>
 
       <div className={styles.card}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Name</th>
               <th>Prefix</th>
               <th>Created</th>
               <th>Last Used</th>
-              <th>Actions</th>
+              <th>Revoked</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                No API keys found.
-              </td>
-            </tr>
+            {apiKeys.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  No API keys found.
+                </td>
+              </tr>
+            ) : (
+              apiKeys.map(key => (
+                <tr key={key.id}>
+                  <td style={{ fontFamily: 'monospace' }}>{key.prefix}••••••••••••••••••••••••</td>
+                  <td>{new Date(key.createdAt).toLocaleDateString()}</td>
+                  <td>{key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleDateString() : 'Never'}</td>
+                  <td>{key.revokedAt ? 'Yes' : 'No'}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
